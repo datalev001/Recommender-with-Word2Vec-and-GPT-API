@@ -15,21 +15,27 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
+# download data from https://archive.ics.uci.edu/ml/datasets/Online+Retail+II
 tran_df = pd.read_excel('online_retail_II.xlsx')
 
+# define rules and clean data 1:
 c1 = (tran_df['Invoice'].isnull() == False)
 c2 = (tran_df['Quantity']>0)
 c3 = (tran_df['Customer ID'].isnull() == False)
 c4 = (tran_df['StockCode'].isnull() == False)
 c5 = (tran_df['Description'].isnull() == False)
 tran_df = tran_df[c1 & c2 & c3 & c4 & c5]
+
+# define rules and clean data 2:
 grp = ['Invoice', 'StockCode','Description', 'Quantity', 'InvoiceDate']
 tran_df = tran_df.drop_duplicates(grp)
 tran_df['transaction_date'] = tran_df['InvoiceDate'].dt.date
 
+# define rules and clean data 3:
 pro_lst = list(set(cats_top['index']))
 tran_df_sel = tran_df[tran_df['Description'].isin(pro_lst)]
 
+# convert 'trans_date' to date type
 tran_df_sel['trans_date'] = pd.to_datetime(tran_df_sel['transaction_date'], format = '%Y-%m-%d')
 
 # Create a summary dataframe for the BG/NBD model
@@ -56,8 +62,7 @@ customer_scores = summary_data.reset_index()
 customer_scores = customer_scores[['Customer ID', 'predicted_purchase_30_days']]
 
 # Rename the column to 'score' as you requested
-customer_scores.rename(columns=\
-    {'predicted_purchase_30_days': 'score'}, inplace=True)
+customer_scores.rename(columns = {'predicted_purchase_30_days': 'score'}, inplace=True)
     
 customer_scores = customer_scores.sort_values(['score'], ascending = False)
 
@@ -75,8 +80,7 @@ sm = [f'{i:03}' for i in range(len(prodtc_desc))]
 names = ['product_' + str(j) for j in sm]
 nm_dict = dict(zip(prodtc_desc, names))
 
-vtran_df_cand_sum = tran_df_cand.groupby(['Customer ID', 'Description'])\
-   ['Quantity'].sum().reset_index()
+vtran_df_cand_sum = tran_df_cand.groupby(['Customer ID', 'Description'])['Quantity'].sum().reset_index()
    
 vtran_df_cand_sum['product'] = vtran_df_cand_sum['Description'].map(nm_dict)
 
