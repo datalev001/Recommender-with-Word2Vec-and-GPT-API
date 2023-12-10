@@ -1,5 +1,6 @@
-# Recommender-with-Word2Vec-and-GPT-API
+# Enhancing Retail Recommender Systems with Word2Vec and GPT API
 Enhancing Retail Recommender Systems with Word2Vec and GPT API
+
 Conventional recommendation methodologies predominantly rely on collaborative filtering or content-based techniques. Nonetheless, these methods often initiate a process known as 'content-based filtering' as a preliminary step. The purpose of this step is to convert a sparsely populated user interaction matrix into a denser matrix, effectively mitigating data sparsity by reducing data dimensionality before deploying the recommendation algorithm. Regrettably, this procedure entails significant computational complexity.
 
 Additionally, traditional methods struggle to effectively leverage textual information, such as product descriptions, to provide transparent explanations for the rationale behind their recommendation results. Fortunately, some advanced AI tools such as Word2Vec and GPT APIs may present viable solutions to address these challenges. 
