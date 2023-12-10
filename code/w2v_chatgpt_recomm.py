@@ -1,39 +1,21 @@
 import nltk
+import numpy as np
 import pandas as pd
 nltk.download('punkt')  # download the tokenizer
 import os
-from sqlalchemy.sql import text
 import datetime
-from datetime import date
-from datetime import datetime  
-from datetime import timedelta  
-import numpy as np
+from datetime import date, datetime, timedelta
 import openai
 import ast
 import json
-'''
-update the followings into professional English in a data science paper:
-'''
+from lifetimes import BetaGeoFitter
+from lifetimes.utils import summary_data_from_transaction_data
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
-wholepath = r'C:\lsg\专利2023\down_data'
-
-os.chdir(wholepath)
-
-import gc
-
 tran_df = pd.read_excel('online_retail_II.xlsx')
-list(tran_df.columns)
-tran_df.shape
-
-FFF = tran_df.groupby(['Customer ID'])['Quantity'].sum().reset_index()
-len(FFF) # 4314
-
-tran_df['Quantity'].min()
-(tran_df['Quantity']<0).sum()
 
 c1 = (tran_df['Invoice'].isnull() == False)
 c2 = (tran_df['Quantity']>0)
@@ -43,70 +25,12 @@ c5 = (tran_df['Description'].isnull() == False)
 tran_df = tran_df[c1 & c2 & c3 & c4 & c5]
 grp = ['Invoice', 'StockCode','Description', 'Quantity', 'InvoiceDate']
 tran_df = tran_df.drop_duplicates(grp)
-tran_df.shape
-
-tran_df[['Invoice', 'StockCode', 'Quantity', 'InvoiceDate', 'Description']].head(30)
-
-
-
-tran_df.dtypes
 tran_df['transaction_date'] = tran_df['InvoiceDate'].dt.date
-
-len(set(tran_df['Description']))
-
-cats = tran_df['Description'].value_counts().reset_index()
-cats_top = cats.head(100)
-cats_top.Description.sum()
-cats.Description.sum()
 
 pro_lst = list(set(cats_top['index']))
 tran_df_sel = tran_df[tran_df['Description'].isin(pro_lst)]
-tran_df_sel.shape
-
-!'''
-
-I have transaction data with the columns:  customer_id,  transaction_date, 
-quantity.  here  'transaction_date' is the customer's purchase date, which 
-is date type value, and quantity is numeric data. Now I want you to build
- predictive repurchase model to predict the probability that customer 
- to buy at least quantity >0 in the next 30 days (based on the  today
-be the max date in this data). I need you to use 'lifetimes' package 
- (such as  import lifetimes BG/NBD model) in Python to create this 
- model, that is, based on recency,  customer's tenure, Freq of transaction
- ... to predict each cudtomer's score. provide data frame that 
- contains 'customer_id', ''score". Here score is the probability that 
- customer to buy at least quantity >0 in the next 30 days. Please 
- write the entire Python codes
-
-
-To build a predictive repurchase model using the "lifetimes" package in Python, we can follow these steps:
-
-Install and import the necessary libraries.
-Prepare and preprocess the data.
-Fit the BG/NBD model to predict the customer's score.
-Create a data frame with customer IDs and scores.
-Here's the Python code to accomplish this:
-    
-    bgf = BetaGeoFitter(penalizer_coef = p)
-      
-          # fitting of BG-NBD model
-          bgf.fit(frequency = data_res['frequency'], 
-                  recency = data_res['recency'], 
-                  T = data_res['T'])
-          
-          
-'''
 
 tran_df_sel['trans_date'] = pd.to_datetime(tran_df_sel['transaction_date'], format = '%Y-%m-%d')
-tran_df_sel.dtypes
-
-
-import pandas as pd
-from lifetimes import BetaGeoFitter
-from lifetimes.utils import summary_data_from_transaction_data
-
-# Assuming you have a DataFrame named 'transaction_data' with columns: customer_id, transaction_date, and quantity
-# Make sure 'transaction_date' is of datetime type
 
 # Create a summary dataframe for the BG/NBD model
 summary_data = summary_data_from_transaction_data\
@@ -129,15 +53,13 @@ summary_data['predicted_purchase_30_days'] =\
 
 # Create a data frame with 'customer_id' and 'score'
 customer_scores = summary_data.reset_index()
-customer_scores = customer_scores\
-    [['Customer ID', 'predicted_purchase_30_days']]
+customer_scores = customer_scores[['Customer ID', 'predicted_purchase_30_days']]
 
 # Rename the column to 'score' as you requested
 customer_scores.rename(columns=\
     {'predicted_purchase_30_days': 'score'}, inplace=True)
     
-customer_scores = customer_scores.sort_values\
-    (['score'], ascending = False)
+customer_scores = customer_scores.sort_values(['score'], ascending = False)
 
 # Print the customer scores
 print(customer_scores)
@@ -146,24 +68,17 @@ customer_scores.score.quantile([0.05*j for j in range(20)])
 customer_scores_top = customer_scores[customer_scores.score>0.12]
 customer_scores_lst = set(customer_scores_top['Customer ID'])
 
-len(customer_scores_lst)
-
-tran_df_cand = tran_df_sel[tran_df_sel\
-  ['Customer ID'].isin(customer_scores_lst)]
+tran_df_cand = tran_df_sel[tran_df_sel['Customer ID'].isin(customer_scores_lst)]
     
-
-#####
 prodtc_desc = list(set(tran_df_cand.Description))
 sm = [f'{i:03}' for i in range(len(prodtc_desc))]
 names = ['product_' + str(j) for j in sm]
 nm_dict = dict(zip(prodtc_desc, names))
 
-vtran_df_cand_sum = tran_df_cand.\
-    groupby(['Customer ID', 'Description'])\
+vtran_df_cand_sum = tran_df_cand.groupby(['Customer ID', 'Description'])\
    ['Quantity'].sum().reset_index()
    
-vtran_df_cand_sum['product'] = \
-    vtran_df_cand_sum['Description'].map(nm_dict)
+vtran_df_cand_sum['product'] = vtran_df_cand_sum['Description'].map(nm_dict)
 
 vtran_df_cand_sum_pv = vtran_df_cand_sum.pivot(index='Customer ID',\
         columns='product', values='Quantity').reset_index()
@@ -173,12 +88,9 @@ vtran_df_cand_sum_pv = vtran_df_cand_sum_pv.fillna(0.0)
 cccc = ['Customer ID', 'product_000', 'product_001', 'product_002','product_003',
         'product_004', 'product_005', 'product_006']
 
-vtran_df_cand_sum_pv[cccc].head(7)
-
 cols = list(vtran_df_cand_sum_pv.columns)
 cols.remove('Customer ID')
-vtran_df_cand_sum_pv[cols] = \
-    vtran_df_cand_sum_pv[cols] / vtran_df_cand_sum_pv[cols].max()
+vtran_df_cand_sum_pv[cols] = vtran_df_cand_sum_pv[cols] / vtran_df_cand_sum_pv[cols].max()
 
 avg_q = vtran_df_cand_sum_pv[cols].mean()
 
@@ -193,13 +105,9 @@ for column in cols:
     # Update the values in 'D1' based on your rules
     res_df[column] = res_df[column].apply(lambda x: 2 if x > avgq else (1 if x > 0 else 0))
 
-res_df[cccc].head(7)
 res_df.to_excel('wv_rec.xlsx',index = False)
 
-
-
 res_df['sumv'] = res_df[cols].sum(axis = 1)
-(res_df['sumv']>0).sum()
 
 def generate_desc(row):
     desc = []
@@ -211,24 +119,17 @@ def generate_desc(row):
 res_df_trans = res_df[['Customer ID']].copy()
 res_df_trans['desc'] = res_df.apply(generate_desc, axis=1)
 
-res_df_trans[['Customer ID', 'desc']].head(10)
-
-# Display the resulting DataFrame
-print(res_df_trans)
-
 def get_embedding(text):
    result = openai.Embedding.create(input=text, model="text-embedding-ada-002")
    result_text = np.array(result['data'][0]['embedding'])
    return result_text
 
 res_df_trans['ada_embedding'] = res_df_trans['desc'].apply(get_embedding)
-res_df_trans.dtypes.reset_index()
 
 res_df_new = res_df_trans.copy()
 res_df_new['ada_embedding'] = res_df_new['ada_embedding'].apply(lambda x: x.tolist())
 res_df_new['ada_embedding'] = res_df_new['ada_embedding'].apply(json.dumps)
 res_df_new.to_csv('wv_rec_new.csv', index=False)
-
 
 res_df_clus = res_df_trans.copy()
 v_array = np.array(res_df_clus['ada_embedding'].to_list())
@@ -250,14 +151,11 @@ res_df_clus = res_df_clus[['Customer ID', 'cluster']]
 A = res_df_clus['cluster'].value_counts().reset_index()
 A.columns = ['segment_name', 'count']
 
-list(res_df.columns)
 res_df1 = pd.merge(res_df, res_df_clus, on = ['Customer ID'], how = 'inner')
-res_df1.shape
 buy_df_clus = res_df1.groupby('cluster')[cols].mean().reset_index()
 nms = [it+ '_c' for it in cols]
 buy_df_clus.columns = ['cluster'] + nms
 res_df1 = pd.merge(res_df1, buy_df_clus, on = ['cluster'], how = 'inner')
-list(res_df1.columns)
 
 p_columns = nms[:]  # Exclude 'customer_id'
 
@@ -276,8 +174,6 @@ res_df1['top_5'] = res_df1.apply(lambda row: find_top_N_cols(row, 5)[4], axis=1)
 
 # Display the updated DataFrame
 res_df3 = res_df1.drop_duplicates(['cluster'])
-res_df3[['cluster', 'top_1', 'top_2', 'top_3', 'top_4', 'top_5']].head(30)
-list(res_df1.columns)
 
 def create_recommend_list(row):
     recommend = []
@@ -289,19 +185,16 @@ def create_recommend_list(row):
 # Apply the function to each row and create the 'recommend' column
 res_df1['recommend'] = res_df1.apply(create_recommend_list, axis=1)
 reco_df = res_df1[['Customer ID','cluster', 'recommend']]
-# Display the updated DataFrame
-print(reco_df.head(30))
-
 
 res_df_reco = res_df1[['Customer ID','cluster', 'recommend'] + cols +\
                       ['top_1', 'top_2', 'top_3', 'top_4', 'top_5']]
 
 res_df_reco.to_excel('reco.xlsx', index=False)    
 
-
 clus_df_top = res_df3[['cluster', 'top_1', 'top_2', 'top_3', 'top_4', 'top_5']]
 
 exchanged_dict = {value: key for key, value in nm_dict.items()}
+
 # Define a function to map keys to values
 def map_to_values(key_column):
     return key_column.map(exchanged_dict)
@@ -313,21 +206,12 @@ clus_df_top['top_v3'] = map_to_values(clus_df_top['top_3'])
 clus_df_top['top_v4'] = map_to_values(clus_df_top['top_4'])
 clus_df_top['top_v5'] = map_to_values(clus_df_top['top_5'])
 
-# Print the updated DataFrame
-print(clus_df_top)
-list(clus_df_top.columns)
-
 def concat_values(row):
     return ', '.join(row[6:11])  
 
 # Create the 'products_lst' column
 clus_df_top['products_lst'] = clus_df_top.apply(concat_values, axis=1)
-
-# Print the updated DataFrame
-print(clus_df_top)
 clus_df_top.to_excel('clus_df_top.xlsx', index=False)   
-
-
 
 notice = ', do not randomly fabricate unless you 80% know, \
           otherwise say I do not know'
@@ -339,7 +223,6 @@ def sentence_to_vector(sentence):
 
     result = response['choices'][0]['text']
     return result
-
 
 for j in range(len(clus_df_top)):
     cluster = clus_df_top.iloc[j]['cluster']
