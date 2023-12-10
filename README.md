@@ -14,3 +14,6 @@ To provide a comprehensive overview of our solution, we outline the following st
 4.	Customer Segmentation: Leveraging the vector features within the 'Customer-Product Transaction Matrix,' we engage in customer segmentation. This segmentation is pivotal for the subsequent creation of distinct recommendation rules for each customer segment. 
 5.	Personalized Recommendations: Within each customer segment, we craft personalized recommendations based on the overall customer's past purchase behavior, tailoring product recommendations to their specific preferences and history.
 6.	Application of  OpenAI GPT’s APIs: In this stage, we incorporate the GPT API and 'product description' text into the recommendation process. This integration enhances the transparency of our recommendations by providing clear explanations for the rationale behind the recommended products.
+
+For comprehensive information, kindly refer to the following post:
+https://medium.com/@datalev/enhancing-retail-recommender-systems-with-word2vec-and-gpt-api-01bff292a41b
